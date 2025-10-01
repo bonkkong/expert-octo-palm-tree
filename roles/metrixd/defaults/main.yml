@@ -1,0 +1,7 @@
+# Переменные по умолчанию. Могут быть переопределены
+# в playbook'ах или inventory чтобы кастомизировать пути и listening адрес.
+metrixd_user: metrix
+metrixd_group: metrix
+metrixd_install_dir: /opt/metrixd
+metrixd_binary_name: metrixd
+metrixd_listen_addr: 127.0.0.1:8080

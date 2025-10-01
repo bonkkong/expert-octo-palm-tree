@@ -1,0 +1,62 @@
+- name: Ensure group
+  ansible.builtin.group:
+    name: "{{ metrixd_group }}"
+
+- name: Ensure user
+  ansible.builtin.user:
+    name: "{{ metrixd_user }}"
+    group: "{{ metrixd_group }}"
+    shell: /usr/sbin/nologin
+    create_home: false
+    system: true
+
+- name: Create install dir
+  ansible.builtin.file:
+    path: "{{ metrixd_install_dir }}"
+    state: directory
+    owner: "{{ metrixd_user }}"
+    group: "{{ metrixd_group }}"
+    mode: '0755'
+
+- name: Copy binary
+  ansible.builtin.copy:
+    src: "{{ metrixd_binary_name }}"
+    dest: "{{ metrixd_install_dir }}/{{ metrixd_binary_name }}"
+    owner: "{{ metrixd_user }}"
+    group: "{{ metrixd_group }}"
+    mode: '0755'
+  notify: restart metrixd
+
+- name: Install systemd unit
+  ansible.builtin.template:
+    src: metrixd.service.j2
+    dest: /etc/systemd/system/metrixd.service
+    mode: '0644'
+  notify:
+    - daemon-reload
+    - restart metrixd
+
+- name: Enable & start service
+  ansible.builtin.systemd:
+    name: metrixd
+    enabled: true
+    state: started
+
+# Wait until the HTTP endpoint on localhost:8080 responds with status 200.
+- name: Wait HTTP 200 from localhost
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:8080"
+    status_code: 200
+    return_content: true
+  register: http_check
+  retries: 10
+  delay: 1
+  until: http_check.status == 200
+
+# Assert that our custom metric is present in the response body. This is a simple sanity check.
+- name: Assert metric present
+  ansible.builtin.assert:
+    that:
+      - "'host_environment_info{type=' in http_check.content"
+    fail_msg: "host_environment_info metric not found on http://127.0.0.1:8080"
+    success_msg: "Metrics OK: host_environment_info found"

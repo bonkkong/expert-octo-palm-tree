@@ -1,0 +1,36 @@
+[Unit]
+Description=MetrixD - Prometheus-экспортер
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Запускаем сервис под отдельным аккаунтом
+User={{ metrixd_user }}
+Group={{ metrixd_group }}
+
+# Слушаем только на localhost'е
+ExecStart={{ metrixd_install_dir }}/{{ metrixd_binary_name }} --listen-address={{ metrixd_listen_addr }}
+Restart=on-failure
+RestartSec=2
+
+# Best-practice по hardening'у systemd. Минимальные привилегии и изолирование.
+# ProtectSystem=full делает системные директории read‑only.
+# ProtectHome=true ограничивает доступ до других home директорий.
+# MemoryDenyWriteExecute предотвращает сервис от создания одновременно «записываемой и исполняемой» память у сервиса
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ProtectClock=true
+ProtectHostname=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target
